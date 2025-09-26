@@ -6,6 +6,7 @@ $dbname = "palmeiras";
 $port = 3306;
 
 $conn = new mysqli($servername, $username, $password, $dbname, $port);
+
 if ($conn->connect_error) {
     die("Conexão falhou: " . $conn->connect_error);
 }
@@ -28,7 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id'], $_POST['column']
     if (in_array($column, $valid_columns)) {
         $sql = "UPDATE torcedor SET $column='$value' WHERE id=$id";
         if ($conn->query($sql) === TRUE) {
-            echo "✔ Registro atualizado com sucesso!";
+            echo "Registro atualizado com sucesso!";
         } else {
             echo "Erro ao atualizar: " . $conn->error;
         }
@@ -47,11 +48,46 @@ $result = $conn->query($sql);
     <title>Visualizar Cadastros</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="table.css">
+    <script>
+    function enableEditing(id) {
+        let fields = ['nome','inscricao','descricao'];
+        fields.forEach(function(col){
+            let cell = document.getElementById(col + '-' + id);
+            cell.contentEditable = true;
+            cell.style.backgroundColor = "#d4f5d4";
+        });
+    }
+
+    function updateData(element, column, id) {
+        var value = element.innerText;
+        element.contentEditable = false;
+        element.style.backgroundColor = "";
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                document.getElementById('statusMessage').innerText = this.responseText;
+                setTimeout(function() {
+                    document.getElementById('statusMessage').innerText = '';
+                }, 3000);
+            }
+        };
+        xhttp.open("POST", "visualizar_cadastros.php", true);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.send("id=" + id + "&column=" + column + "&value=" + encodeURIComponent(value));
+    }
+
+    function deleteRow(id) {
+        if (confirm("Tem certeza que deseja excluir este torcedor?")) {
+            window.location.href = 'visualizar_cadastros.php?delete=' + id;
+        }
+    }
+    </script>
 </head>
 <body>
 <div class="container mt-4 text-center">
     <img src="https://admin.cnnbrasil.com.br/wp-content/uploads/sites/12/2024/07/PUMA-e-Palmeiras-renovam-contrato-imagem-e1721139703561.jpeg?w=1200&h=675&crop=1" 
-         alt="header-image" class="header-image img-fluid mx-auto d-block" width="600px">
+     alt="header-image" class="header-image img-fluid mx-auto d-block" width="600px">
     <hr>
     <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-center navbar-custom mb-4">
         <ul class="navbar-nav">
@@ -79,9 +115,12 @@ $result = $conn->query($sql);
                 <tbody>";
         while($row = $result->fetch_assoc()) {
             echo "<tr>
-                    <td id='nome-" . $row["id"] . "' contentEditable='false'>" . $row["nome"]. "</td>
-                    <td id='inscricao-" . $row["id"] . "' contentEditable='false'>" . $row["inscricao"]. "</td>
-                    <td id='descricao-" . $row["id"] . "' contentEditable='false'>" . $row["descricao"]. "</td>
+                    <td id='nome-" . $row["id"] . "' contentEditable='false' 
+                        onBlur='updateData(this, \"nome\", ".$row["id"].")'>" . $row["nome"]. "</td>
+                    <td id='inscricao-" . $row["id"] . "' contentEditable='false' 
+                        onBlur='updateData(this, \"inscricao\", ".$row["id"].")'>" . $row["inscricao"]. "</td>
+                    <td id='descricao-" . $row["id"] . "' contentEditable='false' 
+                        onBlur='updateData(this, \"descricao\", ".$row["id"].")'>" . $row["descricao"]. "</td>
                     <td>
                         <button class='btn btn-sm btn-primary' onClick='enableEditing(".$row["id"].")'>✏️ Editar</button>
                         <button class='btn btn-sm btn-danger' onClick='deleteRow(".$row["id"].")'>🗑️ Excluir</button>
@@ -102,6 +141,5 @@ $result = $conn->query($sql);
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-<script src="js/scripts.js"></script>
 </body>
 </html>
